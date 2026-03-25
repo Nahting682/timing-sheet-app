@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Timing Sheet Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; padding: 15px; background:#f5f5f5; }
+    input, select, button { padding:12px; margin:6px 0; width:100%; font-size:16px; }
+    .card { background:white; padding:15px; border-radius:10px; margin-bottom:15px; }
+    .row { display:flex; gap:10px; }
+    .row > * { flex:1; }
+    button { background:#007bff; color:white; border:none; border-radius:8px; }
+    .stop { background:#dc3545; }
+    .delete { background:#6c757d; margin-top:10px; }
+    .danger { background:#dc3545; }
+    .summary { background:#28a745; color:white; }
+  </style>
+</head>
+
+<body>
+
+<h2>Timing Sheet</h2>
+<p id="date"></p>
+
+<div class="card">
+
+  <label>Machine</label>
+  <select id="machine">
+    <option>Waterjet</option>
+    <option>Gangsaw 1</option>
+    <option>Mitring</option>
+    <option>Edging</option>
+    <option>Gangsaw 2</option>
+    <option>Wash and Chambering</option>
+    <option>Dropface Gluing</option>
+    <option>Skimmer Lids</option>
+  </select>
+
+  <label>Process</label>
+  <select id="process">
+    <option>Set Up</option>
+    <option>Runtime</option>
+    <option>Paperwork</option>
+    <option>Breakdown</option>
+  </select>
+
+  <label>Task</label>
+  <input id="task" placeholder="e.g. Cutting 600x250">
+
+  <label>Operators</label>
+  <div class="row">
+    <select id="op1"></select>
+    <select id="op2"></select>
+    <select id="op3"></select>
+  </div>
+
+  <div class="row">
+    <button onclick="startTimer()">▶ Start</button>
+    <button class="stop" onclick="stopTimer()">⏹ Stop</button>
+  </div>
+
+  <p id="duration">Duration: 00:00:00</p>
+
+  <label>Comments</label>
+  <input id="comments">
+
+  <button onclick="addEntry()">+ Add Entry</button>
+</div>
+
+<div class="card summary">
+  <h3>Daily Summary</h3>
+  <p id="totalTime">Total Time: 0 hrs</p>
+</div>
+
+<h3>Entries</h3>
+<div id="entries"></div>
+
+<button onclick="downloadCSV()">⬇ Export Excel</button>
+<button class="danger" onclick="clearAll()">🧹 Clear All</button>
+
+<script>
+let startTime = null;
+let timerInterval = null;
+let currentDuration = 0;
+let entries = JSON.parse(localStorage.getItem("entries")) || [];
+
+const operators = ["", "Ryan","Nat","Prince","Elsie","Hudson","King","George","Matt","Andrea","Recee"];
+
+// Operators
+function loadOperators() {
+  ["op1","op2","op3"].forEach(id => {
+    let select = document.getElementById(id);
+    select.innerHTML = "";
+
+    operators.forEach(name => {
+      let opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name === "" ? "— None —" : name;
+      select.appendChild(opt);
+    });
+
+    let saved = localStorage.getItem(id);
+    if (saved !== null) select.value = saved;
+
+    select.onchange = () => localStorage.setItem(id, select.value);
+  });
+}
+
+// TIMER
+function startTimer() {
+  if (timerInterval) return;
+
+  startTime = new Date();
+
+  timerInterval = setInterval(() => {
+    let diff = new Date() - startTime;
+
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
+
+    duration.innerText =
+      `Duration: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  if (!startTime) return alert("Press Start first");
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  let diff = new Date() - startTime;
+  currentDuration = Math.max(1, Math.round(diff / 60000));
+
+  let h = Math.floor(diff / 3600000);
+  let m = Math.floor((diff % 3600000) / 60000);
+  let s = Math.floor((diff % 60000) / 1000);
+
+  duration.innerText =
+    `Duration: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  startTime = null;
+  currentDuration = 0;
+  duration.innerText = "Duration: 00:00:00";
+}
+
+// ADD ENTRY
+function addEntry() {
+  if (currentDuration === 0) return alert("No duration recorded");
+
+  let ops = [op1.value, op2.value, op3.value].filter(o => o).join(", ");
+
+  let data = {
+    date: new Date().toLocaleDateString(),
+    machine: machine.value,
+    process: process.value,
+    task: task.value,
+    operators: ops,
+    duration: currentDuration,
+    comments: comments.value
+  };
+
+  entries.push(data);
+  localStorage.setItem("entries", JSON.stringify(entries));
+
+  resetTimer();
+  task.value = "";
+  comments.value = "";
+
+  render();
+}
+
+// DELETE
+function deleteEntry(i) {
+  entries.splice(i,1);
+  localStorage.setItem("entries", JSON.stringify(entries));
+  render();
+}
+
+// RENDER
+function render() {
+  let html = "";
+  let totalTime = 0;
+
+  entries.forEach((e,i) => {
+    totalTime += e.duration;
+
+    html += `<div class="card">
+      <b>${e.machine}</b> - ${e.process}<br>
+      Task: ${e.task}<br>
+      Operators: ${e.operators || "None"}<br>
+      Duration: ${e.duration} min<br>
+      ${e.comments}<br>
+      <button class="delete" onclick="deleteEntry(${i})">🗑 Delete</button>
+    </div>`;
+  });
+
+  entriesDiv.innerHTML = html;
+
+  totalTimeEl.innerText =
+    `Total Time: ${(totalTime/60).toFixed(2)} hrs`;
+}
+
+// CLEAR
+function clearAll() {
+  if (confirm("Clear all entries?")) {
+    entries = [];
+    localStorage.removeItem("entries");
+    render();
+  }
+}
+
+// EXPORT
+function downloadCSV() {
+  let csv = "Date,Machine,Process,Task,Operators,Duration,Comments\n";
+  entries.forEach(e => {
+    csv += `${e.date},${e.machine},${e.process},${e.task},${e.operators},${e.duration},${e.comments}\n`;
+  });
+
+  let blob = new Blob([csv], { type:'text/csv' });
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "timing_sheet.csv";
+  a.click();
+}
+
+// INIT
+document.getElementById("date").innerText =
+  "Date: " + new Date().toDateString();
+
+const entriesDiv = document.getElementById("entries");
+const totalTimeEl = document.getElementById("totalTime");
+
+loadOperators();
+render();
+</script>
+
+</body>
+</html>
