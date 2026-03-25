@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#007bff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Timing Sheet" />
+  <title>Timing Sheet Pro</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #17212b;
+      --muted: #5f6b7a;
+      --primary: #007bff;
+      --primary-dark: #005ec4;
+      --danger: #dc3545;
+      --danger-dark: #b92534;
+      --success: #28a745;
+      --border: #dbe3ee;
+      --shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 14px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+    }
+
+    .subtext {
+      color: var(--muted);
+      margin: 0 0 16px;
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .summary {
+      background: linear-gradient(180deg, #2cb34f 0%, #23933f 100%);
+      color: white;
+    }
+
+    .summary p { margin: 8px 0 0; }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 12px 0 6px;
+    }
+
+    input, select, button, textarea {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 13px 14px;
+      font-size: 16px;
+      background: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    button {
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.02s ease, opacity 0.2s ease, background 0.2s ease;
+    }
+
+    button:active { transform: scale(0.99); }
+    button.secondary { background: #6c757d; }
+    button.stop { background: var(--danger); }
+    button.danger { background: var(--danger); }
+    button.stop:hover, button.danger:hover { background: var(--danger-dark); }
+    button:hover { background: var(--primary-dark); }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      background: #eef5ff;
+      border: 1px solid #cfe1ff;
+      border-radius: 14px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .timer-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .timer-value {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .pill {
+      display: inline-block;
+      background: #edf2f8;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .entry {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+
+    .entry-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 8px;
+    }
+
+    .entry-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .entry-meta {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .spacer { height: 4px; }
+
+    .footer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 22px 10px;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      background: #fbfdff;
+    }
+
+    @media (max-width: 640px) {
+      .row, .row-3, .footer-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .timer-value { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Timing Sheet</h1>
+    <p class="subtext" id="todayLabel"></p>
+
+    <div class="card">
+      <label for="machine">Machine</label>
+      <select id="machine">
+        <option>Waterjet</option>
+        <option>Gangsaw 1</option>
+        <option>Mitring</option>
+        <option>Edging</option>
+        <option>Gangsaw 2</option>
+        <option>Wash and Chambering</option>
+        <option>Dropface Gluing</option>
+        <option>Skimmer Lids</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label for="process">Process</label>
+          <select id="process">
+            <option>Set Up</option>
+            <option>Runtime</option>
+            <option>Paperwork</option>
+            <option>Breakdown</option>
+          </select>
+        </div>
+        <div>
+          <label for="workDate">Date</label>
+          <input type="date" id="workDate" />
+        </div>
+      </div>
+
+      <label for="task">Task</label>
+      <input id="task" placeholder="e.g. Cutting 600x250" />
+
+      <label>Operators</label>
+      <div class="row-3">
+        <select id="op1"></select>
+        <select id="op2"></select>
+        <select id="op3"></select>
+      </div>
+
+      <div class="timer-wrap">
+        <div>
+          <div class="timer-label">Live counter</div>
+          <div class="timer-value" id="duration">00:00:00</div>
+        </div>
+        <span class="pill" id="timerStatus">Stopped</span>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button id="startBtn" onclick="startTimer()">▶ Start</button>
+        <button class="stop" id="stopBtn" onclick="stopTimer()">⏹ Stop</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="qty">Quantity</label>
+          <input type="number" id="qty" min="0" value="1" />
+        </div>
+        <div>
+          <label for="manualMinutes">Manual minutes</label>
+          <input type="number" id="manualMinutes" min="0" placeholder="Optional" />
+        </div>
+      </div>
+
+      <label for="comments">Comments</label>
+      <textarea id="comments" placeholder="Add notes here"></textarea>
+
+      <button style="margin-top:12px;" onclick="addEntry()">+ Add Entry</button>
+    </div>
+
+    <div class="card summary">
+      <h3 style="margin:0;">Daily Summary</h3>
+      <p id="totalTime">Total Time: 0 min (0.00 hrs)</p>
+      <p id="totalQty">Total Quantity: 0</p>
+      <p id="entryCount">Entries: 0</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Entries</h3>
+      <div id="entriesList"></div>
+    </div>
+
+    <div class="footer-actions">
+      <button onclick="downloadCSV()">⬇ Export CSV</button>
+      <button class="danger" onclick="clearAll()">🧹 Clear All</button>
+    </div>
+  </div>
+
+  <script>
+    let startTime = null;
+    let timerInterval = null;
+    let currentDurationMinutes = 0;
+    let currentDurationMs = 0;
+    let entries = JSON.parse(localStorage.getItem("timingSheetEntries") || "[]");
+
+    const operators = ["", "Ryan", "Nat", "Prince", "Elsie", "Hudson", "King", "George", "Matt", "Andrea", "Recee"];
+
+    const machine = document.getElementById("machine");
+    const process = document.getElementById("process");
+    const workDate = document.getElementById("workDate");
+    const task = document.getElementById("task");
+    const op1 = document.getElementById("op1");
+    const op2 = document.getElementById("op2");
+    const op3 = document.getElementById("op3");
+    const qty = document.getElementById("qty");
+    const manualMinutes = document.getElementById("manualMinutes");
+    const comments = document.getElementById("comments");
+    const durationEl = document.getElementById("duration");
+    const timerStatus = document.getElementById("timerStatus");
+    const entriesList = document.getElementById("entriesList");
+    const totalTimeEl = document.getElementById("totalTime");
+    const totalQtyEl = document.getElementById("totalQty");
+    const entryCountEl = document.getElementById("entryCount");
+    const todayLabel = document.getElementById("todayLabel");
+
+    function formatDateInput(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatMs(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function formatDisplayDate(isoDate) {
+      if (!isoDate) return "";
+      const d = new Date(`${isoDate}T00:00:00`);
+      return d.toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function escapeCSV(value) {
+      const safe = String(value ?? "").replace(/\r?\n|\r/g, ' ');
+      return `"${safe.replace(/"/g, '""')}"`;
+    }
+
+    function saveEntries() {
+      localStorage.setItem("timingSheetEntries", JSON.stringify(entries));
+    }
+
+    function setToday() {
+      workDate.value = formatDateInput(new Date());
+      todayLabel.textContent = `Today: ${new Date().toLocaleDateString(undefined, {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      })}`;
+    }
+
+    function loadOperators() {
+      ["op1", "op2", "op3"].forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = "";
+
+        operators.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name === "" ? "— None —" : name;
+          select.appendChild(opt);
+        });
+
+        const saved = localStorage.getItem(`timing_${id}`);
+        if (saved !== null) select.value = saved;
+
+        select.addEventListener("change", () => {
+          localStorage.setItem(`timing_${id}`, select.value);
+        });
+      });
+    }
+
+    function startTimer() {
+      if (timerInterval) return;
+
+      startTime = Date.now() - currentDurationMs;
+      timerStatus.textContent = "Running";
+
+      timerInterval = setInterval(() => {
+        currentDurationMs = Date.now() - startTime;
+        durationEl.textContent = formatMs(currentDurationMs);
+      }, 250);
+    }
+
+    function stopTimer() {
+      if (!timerInterval && !startTime) {
+        alert("Press Start first");
+        return;
+      }
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      currentDurationMs = startTime ? (Date.now() - startTime) : currentDurationMs;
+      currentDurationMinutes = Math.max(1, Math.round(currentDurationMs / 60000));
+      durationEl.textContent = formatMs(currentDurationMs);
+      timerStatus.textContent = "Stopped";
+    }
+
+    function resetTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      startTime = null;
+      currentDurationMs = 0;
+      currentDurationMinutes = 0;
+      durationEl.textContent = "00:00:00";
+      timerStatus.textContent = "Stopped";
+      manualMinutes.value = "";
+    }
+
+    function addEntry() {
+      const manual = parseInt(manualMinutes.value, 10) || 0;
+      let finalMinutes = currentDurationMinutes;
+
+      if (manual > 0) {
+        finalMinutes = manual;
+      } else if (timerInterval) {
+        stopTimer();
+        finalMinutes = currentDurationMinutes;
+      }
+
+      if (finalMinutes === 0) {
+        alert("Record a time first with Start/Stop or enter Manual minutes.");
+        return;
+      }
+
+      const ops = [op1.value, op2.value, op3.value].filter(Boolean).join(", ");
+
+      const data = {
+        date: workDate.value || formatDateInput(new Date()),
+        machine: machine.value,
+        process: process.value,
+        task: task.value.trim(),
+        operators: ops,
+        duration: finalMinutes,
+        qty: parseInt(qty.value, 10) || 0,
+        comments: comments.value.trim()
+      };
+
+      entries.unshift(data);
+      saveEntries();
+
+      task.value = "";
+      comments.value = "";
+      qty.value = 1;
+      resetTimer();
+      render();
+    }
+
+    function deleteEntry(index) {
+      entries.splice(index, 1);
+      saveEntries();
+      render();
+    }
+
+    function render() {
+      let html = "";
+      let totalTime = 0;
+      let totalQty = 0;
+
+      if (!entries.length) {
+        entriesList.innerHTML = '<div class="empty">No entries yet.</div>';
+      } else {
+        entries.forEach((e, index) => {
+          totalTime += e.duration;
+          totalQty += e.qty;
+
+          html += `
+            <div class="entry">
+              <div class="entry-head">
+                <div>
+                  <p class="entry-title">${e.machine}</p>
+                  <div class="entry-meta">${formatDisplayDate(e.date)} • ${e.process}</div>
+                </div>
+                <span class="pill">${e.duration} min</span>
+              </div>
+              <div class="entry-meta">
+                <strong>Task:</strong> ${e.task || '—'}<br>
+                <strong>Operators:</strong> ${e.operators || 'None'}<br>
+                <strong>Qty:</strong> ${e.qty}<br>
+                <strong>Comments:</strong> ${e.comments || '—'}
+              </div>
+              <button class="secondary" style="margin-top:12px;" onclick="deleteEntry(${index})">🗑 Delete</button>
+            </div>`;
+        });
+        entriesList.innerHTML = html;
+      }
+
+      totalTimeEl.textContent = `Total Time: ${totalTime} min (${(totalTime / 60).toFixed(2)} hrs)`;
+      totalQtyEl.textContent = `Total Quantity: ${totalQty}`;
+      entryCountEl.textContent = `Entries: ${entries.length}`;
+    }
+
+    function clearAll() {
+      if (!confirm("Clear all entries?")) return;
+      entries = [];
+      saveEntries();
+      resetTimer();
+      render();
+    }
+
+    function downloadCSV() {
+      const rows = [
+        ["Date", "Machine", "Process", "Task", "Operators", "Duration (min)", "Qty", "Comments"]
+      ];
+
+      entries.forEach(e => {
+        rows.push([
+          e.date,
+          e.machine,
+          e.process,
+          e.task,
+          e.operators,
+          e.duration,
+          e.qty,
+          e.comments
+        ]);
+      });
+
+      const csv = rows.map(row => row.map(escapeCSV).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `timing_sheet_${formatDateInput(new Date())}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      });
+    }
+
+    setToday();
+    loadOperators();
+    render();
+  </script>
+</body>
+</html>
